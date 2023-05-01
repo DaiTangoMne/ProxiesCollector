@@ -1,9 +1,7 @@
 import requests
-from config import http
-from bs4 import BeautifulSoup
 import base64
-import random
 import re
+from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
 url = 'http://free-proxy.cz/ru/proxylist/main/'
@@ -26,46 +24,56 @@ def get_ip(text) -> str:
 
 def get_proxies_list(pages: int) -> list:
     proxies_list = []
-    proxies = {
-        'http': random.choice(http)
-    }
     for i in range(1, pages + 1):
-        print(f'page: {i}')
-        f1 = 1
-        while f1:
-            try:
-                # session.proxies = proxies
-                html = session.get(url + str(i)).text
-                soup = BeautifulSoup(html, 'lxml')
-                table = soup.find('table', id='proxy_list')
-                rows = table.find_all('tr')
-                for row in rows[1:]:
-                    try:
-                        tds = row.find_all('td')
-                        ip = get_ip(tds[0].find('script').text)
-                        port = tds[1].find('span').text
-                        protocol = tds[2].text.lower()
-                        if protocol == 'https':
-                            proxies_list.append({"https": f'{ip}:{port}'})
-                        elif protocol == 'http':
-                            proxies_list.append({"http": f'{ip}:{port}'})
-                    except Exception:
-                        pass
-                f1 = 0
-            except Exception as ex:
-                # old = proxies['http']
-                # proxies = {
-                #     'http': random.choice(http)
-                # }
-                # print(f'{ex}\n'
-                #       f'old: {old}; new: {proxies["http"]}')
-                pass
+        print(f'[ INFO ] page: {i}', end=' ')
+        try:
+            html = session.get(url + str(i)).text
+            soup = BeautifulSoup(html, 'lxml')
+            table = soup.find('table', id='proxy_list')
+            rows = table.find_all('tr')
+            l = len(proxies_list)
+            for row in rows[1:]:
+                try:
+                    tds = row.find_all('td')
+                    ip = get_ip(tds[0].find('script').text)
+                    port = tds[1].find('span').text
+                    protocol = tds[2].text.lower()
+                    if protocol == 'https':
+                        proxies_list.append({"https": f'{ip}:{port}', "http": ""})
+                    elif protocol == 'http':
+                        proxies_list.append({"http": f'{ip}:{port}', "https": ""})
+                except Exception:
+                    pass
+            if len(proxies_list) > l:
+                print('OK')
+            else:
+                print('ERROR')
+        except Exception:
+            print('ERROR')
+    return proxies_list
 
-        return proxies_list
+
+def test_proxies(proxies_list) -> list:
+    li = []
+    urls = 'https://www.google.com/'
+    url = 'http://povezlo.su/'
+    for proxies in proxies_list:
+        try:
+            if proxies['https'] == "":
+                response = requests.get(url, proxies=proxies, timeout=5)
+            else:
+                response = requests.get(urls, proxies=proxies, timeout=5)
+            li.append(proxies)
+            print(f'[ INFO ] {response.status_code}: {proxies}')
+        except Exception:
+            print(f'[ WARNING ] Bad proxies: {proxies}')
+    return li
 
 
 def main():
-    print(get_proxies_list(4))
+    li = get_proxies_list(10)
+    print('[ INFO ] Proxies are collected')
+    print(test_proxies(li))
 
 
 if __name__ == '__main__':
