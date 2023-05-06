@@ -4,6 +4,9 @@ import re
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
+from config import http
+from random import choice
+
 url = 'http://free-proxy.cz/ru/proxylist/main/'
 
 ua = UserAgent()
@@ -60,9 +63,15 @@ def test_proxies(proxies_list) -> list:
     for proxies in proxies_list:
         try:
             if proxies['https'] == "":
-                response = requests.get(url, proxies=proxies, timeout=5)
+                response = requests.get(url, proxies=proxies, timeout=10)
+                if response.status_code == 200:
+                    with open('http.txt', 'a') as file:
+                        file.write(f"{proxies['http']}\n")
             else:
-                response = requests.get(urls, proxies=proxies, timeout=5)
+                response = requests.get(urls, proxies=proxies, timeout=10)
+                if response.status_code == 200:
+                    with open('https.txt', 'a') as file:
+                        file.write(f"{proxies['https']}\n")
             li.append(proxies)
             print(f'[ INFO ] {response.status_code}: {proxies}')
         except Exception:
@@ -71,8 +80,12 @@ def test_proxies(proxies_list) -> list:
 
 
 def main():
-    li = get_proxies_list(10)
-    print('[ INFO ] Proxies are collected')
+    # li = get_proxies_list(5)
+    # print('[ INFO ] Proxies are collected')
+    # print(test_proxies(li))
+    li = []
+    for item in http:
+        li.append({"http": f'{item}', "https": ""})
     print(test_proxies(li))
 
 
